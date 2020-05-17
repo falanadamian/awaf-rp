@@ -1,0 +1,132 @@
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springgramework.cloud.gateway: DEBUG
+    reactor.netty.http.client: DEBUG
+    com.falana.awafrp: INFO
+management:
+  endpoints:
+    web:
+      base-path: /diagnostics
+      exposure:
+        include: "*"
+
+server:
+  port: 8081
+
+spring:
+  cloud:
+    gateway:
+      routes:
+      - id: firewalled_app
+        uri: http://localhost:8080
+        predicates:
+        - Path=/**
+        - Header=Origin, http://localhost:8080
+#        - Header=X-Proxy-Request, ^(?!(disable|0)$).*
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:8080"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - HEAD
+              - OPTIONS
+            allowedHeaders:
+              - "access-control-allow-origin"
+              - "content-type"
+              - "authorization"
+  http:
+    log-request-details: true
+
+sql-injection:
+  rejection-message: "Malicious input found"
+  commands:
+    - select
+    - drop
+    - from
+    - exec
+    - exists
+    - update
+    - delete
+    - insert
+    - cast
+    - http
+    - sql
+    - like
+    - mysql
+    - information_schema
+    - join
+    - declare
+    - having
+    - signed
+    - alter
+    - union
+    - where
+    - create
+    - shutdown
+    - grant
+    - privileges
+  patterns:
+    - (/\\*).*(\\*/)
+    - (--.*)$
+    - ;+\"+\'
+    - \\d=\\d
+
+awaf:
+  enabled: true
+  sql-injection: true
+  rules:
+  - name: awafed-root
+    ban: TEMPORARY
+    paths:
+    - .*
+    priority: 1
+    rejection-message: Too many requests has been sent, your IP is blocked. Administrator contact - awafed@awafed.com
+    rate-limits:
+    - ipSecThroughputs:
+      - capacity: 10
+        time: 10
+        unit: seconds
+      - capacity: 30
+        time: 1
+        unit: minutes
+      whitelist:
+        - 0:0:0:0:0:0:0:1
+    access-control:
+      permit:
+        - 0:0:0:0:0:0:0:1
+        - 12.23.123.124
+    exclusions:
+      filetypes:
+        - html
+        - css
+        - js
+      subpaths:
+        - /management/*
+  brute-force-protection:
+    name: omg
+    paths:
+    - /api/authenticate
+    rejection-message: Too many login requests!
+    rate-limits:
+    - ipSecThroughputs:
+          - capacity: 5
+            time: 10
+            unit: seconds
+  exclusions:
+    subpaths:
+      - /api/xaxa
+    filetypes:
+      - html
+      - css
+      - js
+  access-control:
+    deny:
+      - 0:0:0:0:0:0:0:2
+#  permit:
+#    - 12.23.123.125
+#    - 0:0:0:0:0:0:0:1
